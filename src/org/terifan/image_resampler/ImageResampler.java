@@ -1,5 +1,6 @@
 package org.terifan.image_resampler;
 
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
@@ -11,44 +12,39 @@ public class ImageResampler
 {
 	public static BufferedImage getScaledImageAspect(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, Filter aFilter)
 	{
-		double scale = Math.min(aWidth / (double)aSource.getWidth(), aHeight / (double)aSource.getHeight());
-
-		return getScaledImageAspectImpl(aSource, aWidth, aHeight, aSRGB, scale, aFilter);
+		return getScaledImageAspectImpl(aSource, aWidth, aHeight, aSRGB, aFilter, false);
 	}
 
 
 	public static BufferedImage getScaledImageAspectOuter(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, Filter aFilter)
 	{
-		double scale = Math.max(aWidth / (double)aSource.getWidth(), aHeight / (double)aSource.getHeight());
-
-		return getScaledImageAspectImpl(aSource, aWidth, aHeight, aSRGB, scale, aFilter);
+		return getScaledImageAspectImpl(aSource, aWidth, aHeight, aSRGB, aFilter, true);
 	}
 
 
-	private static BufferedImage getScaledImageAspectImpl(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, double aScale, Filter aFilter)
+	private static BufferedImage getScaledImageAspectImpl(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, Filter aFilter, boolean aOuter)
 	{
-		int dw = (int)Math.round(aSource.getWidth() * aScale);
-		int dh = (int)Math.round(aSource.getHeight() * aScale);
+		Dimension dim = getScaledImageAspectSize(new Dimension(aSource.getWidth(), aSource.getHeight()), aWidth, aHeight, aOuter);
 
-		if (dw < 1 || dh < 1)
+		if (dim.width < 1 || dim.height < 1)
 		{
 			return aSource;
 		}
 
 		// make sure one direction has specified dimension
-		if (dw != aWidth && dh != aHeight)
+		if (dim.width != aWidth && dim.height != aHeight)
 		{
-			if (Math.abs(aWidth - dw) < Math.abs(aHeight - dh))
+			if (Math.abs(aWidth - dim.width) < Math.abs(aHeight - dim.height))
 			{
-				dw = aWidth;
+				dim.width = aWidth;
 			}
 			else
 			{
-				dh = aHeight;
+				dim.height = aHeight;
 			}
 		}
 
-		return getScaledImage(aSource, dw, dh, aSRGB, aFilter);
+		return getScaledImage(aSource, dim.width, dim.height, aSRGB, aFilter);
 	}
 
 
@@ -193,6 +189,25 @@ public class ImageResampler
 		}
 
 		return output;
+	}
+
+
+	public static Dimension getScaledImageAspectSize(Dimension aSource, int aWidth, int aHeight, boolean aOuter)
+	{
+		double scale;
+		if (aOuter)
+		{
+			scale = Math.max(aWidth / (double)aSource.width, aHeight / (double)aSource.height);
+		}
+		else
+		{
+			scale = Math.min(aWidth / (double)aSource.width, aHeight / (double)aSource.height);
+		}
+
+		aSource.width = (int)Math.round(aSource.width * scale);
+		aSource.height = (int)Math.round(aSource.height * scale);
+
+		return aSource;
 	}
 
 
