@@ -7,35 +7,39 @@ import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
 
 
+/**
+ * e.g. ImageResampler.getScaledImageAspect(image, 500, 300, true, FilterFactory.Lanczos3)
+ */
 public class FilterFactory
 {
 	public final static int FIXED_POINT_SCALE = 65536;
 	public final static int HALF_FIXED_POINT_SCALE = 32768;
 
 
-//	public static FilterFactory.Filter [] values()
-//	{
-//		return new FilterFactory.Filter[]
-//		{
-//			Blackman,
-//			Bohman,
-//			Box,
-//			Catrom,
-//			Cubic,
-//			Gaussian,
-//			Hamming,
-//			Hanning,
-//			Hermite,
-//			Jinc,
-//			Kasier,
-//			Lanczos3,
-//			Mitchell,
-//			Quadratic,
-//			Sinc,
-//			Triangle,
-//			Welch
-//		};
-//	}
+	public static FilterFactory.Filter[] values()
+	{
+		return new FilterFactory.Filter[]
+		{
+			Blackman,
+			Bohman,
+			Box,
+			Catrom,
+			Cubic,
+			Gaussian,
+			Hamming,
+			Hanning,
+			Hermite,
+			Jinc,
+			Kasier,
+			Lanczos2,
+			Lanczos3,
+			Mitchell,
+			Quadratic,
+			Sinc,
+			Triangle,
+			Welch
+		};
+	}
 
 
 	public static abstract class Filter
@@ -49,6 +53,9 @@ public class FilterFactory
 			mName = aName;
 			mRadius = aRadius;
 		}
+
+
+		public abstract double filter(double x);
 
 
 		public String getName()
@@ -68,23 +75,6 @@ public class FilterFactory
 		{
 			return mName;
 		}
-
-
-//		public Kernel getKernel(int aDiameter)
-//		{
-//			double[][] kernel = getKernel2D(aDiameter);
-//			float[] tmp = new float[aDiameter * aDiameter];
-//
-//			for (int y = 0, i = 0; y < aDiameter; y++)
-//			{
-//				for (int x = 0; x < aDiameter; x++, i++)
-//				{
-//					tmp[i] = (float)kernel[y][x];
-//				}
-//			}
-//
-//			return new Kernel(aDiameter, aDiameter, tmp);
-//		}
 
 
 		@Deprecated
@@ -113,7 +103,6 @@ public class FilterFactory
 			int[][] tmp = new int[aDiameter][aDiameter];
 
 			// ensure the weight of the kernel is FIXED_POINT_SCALE
-
 			double bias = 0.5;
 			step = 0.25;
 
@@ -135,7 +124,7 @@ public class FilterFactory
 				}
 				if (rescale == 0 && (aDiameter & 1) == 1)
 				{
-					tmp[aDiameter/2][aDiameter/2] = FIXED_POINT_SCALE + tmp[aDiameter/2][aDiameter/2] - sum;
+					tmp[aDiameter / 2][aDiameter / 2] = FIXED_POINT_SCALE + tmp[aDiameter / 2][aDiameter / 2] - sum;
 					break;
 				}
 
@@ -162,109 +151,6 @@ public class FilterFactory
 		}
 
 
-//		public double[][] getKernel2D(int aDiameter)
-//		{
-//			double step = mRadius / (aDiameter / 2.0);
-//			double step2 = step * step;
-//			double c = (aDiameter - 1) / 2.0;
-//
-//			double[][] kernel = new double[aDiameter][aDiameter];
-//			double weight = 0;
-//
-//			for (int y = 0; y < aDiameter; y++)
-//			{
-//				for (int x = 0; x < aDiameter; x++)
-//				{
-//					double d = sqrt(((x - c) * (x - c) + (y - c) * (y - c)) * step2);
-//					double v = filter(d);
-//
-//					kernel[y][x] = v;
-//					weight += v;
-//				}
-//			}
-//
-//			// ensure the weight of the kernel is 1
-//
-//			double scale = weight == 0 ? 1 : 1.0 / weight;
-//			double sum = 0;
-//
-//			for (int y = 0; y < aDiameter; y++)
-//			{
-//				for (int x = 0; x < aDiameter; x++)
-//				{
-//					sum += kernel[y][x] *= scale;
-//				}
-//			}
-//
-//			if (sum != 1 && (aDiameter & 1) == 1)
-//			{
-//				kernel[aDiameter/2][aDiameter/2] = 1 + kernel[aDiameter/2][aDiameter/2] - sum;
-//			}
-//
-//			return kernel;
-//		}
-//
-//
-//		public int[] getKernel1DInt(int aDiameter)
-//		{
-//			double[] kernel = getKernel1D(aDiameter);
-//			double weight = 0;
-//
-//			for (int x = 0; x < aDiameter; x++)
-//			{
-//				weight += kernel[x];
-//			}
-//
-//			double scale = weight == 0 ? 1 : 1.0 / weight;
-//			int[] tmp = new int[aDiameter];
-//
-//			// ensure the weight of the kernel is FIXED_POINT_SCALE
-//
-//			double bias = 0.5;
-//			double step = 0.25;
-//
-//			for (int rescale = 10,  order = 0; --rescale >= 0;)
-//			{
-//				int sum = 0;
-//
-//				for (int x = 0; x < aDiameter; x++)
-//				{
-//					sum += tmp[x] = (int)(FIXED_POINT_SCALE * scale * kernel[x] + bias);
-//				}
-//
-//				if (sum == FIXED_POINT_SCALE)
-//				{
-//					break;
-//				}
-//				if (rescale == 0 && (aDiameter & 1) == 1)
-//				{
-//					tmp[aDiameter/2] = FIXED_POINT_SCALE + tmp[aDiameter/2] - sum;
-//					break;
-//				}
-//
-//				int o;
-//				if (sum < FIXED_POINT_SCALE)
-//				{
-//					o = 1;
-//					bias += step;
-//				}
-//				else
-//				{
-//					o = 2;
-//					bias -= step;
-//				}
-//
-//				if (order != o)
-//				{
-//					step /= 2;
-//					order = o;
-//				}
-//			}
-//
-//			return tmp;
-//		}
-
-
 		public double[] getKernel1D(int aDiameter)
 		{
 			double step = 1.0 / (aDiameter / 2.0);
@@ -282,47 +168,7 @@ public class FilterFactory
 
 			return kernel;
 		}
-
-
-//		public double[] getKernel1D(int aDiameter)
-//		{
-//			double step = mRadius / (aDiameter / 2.0);
-//			double c = (aDiameter - 1) / 2.0;
-//
-//			double[] kernel = new double[aDiameter];
-//			double weight = 0;
-//
-//			for (int x = 0; x < aDiameter; x++)
-//			{
-//				double d = (x - c) * step;
-//				double v = filter(d);
-//
-//				kernel[x] = v;
-//				weight += v;
-//			}
-//
-//			// ensure the weight of the kernel is 1
-//
-//			double scale = weight == 0 ? 1 : 1.0 / weight;
-//			double sum = 0;
-//
-//			for (int x = 0; x < aDiameter; x++)
-//			{
-//				sum += kernel[x] *= scale;
-//			}
-//
-//			if (sum != 1 && (aDiameter & 1) == 1)
-//			{
-//				kernel[aDiameter/2] = 1 + kernel[aDiameter/2] - sum;
-//			}
-//
-//			return kernel;
-//		}
-
-
-		public abstract double filter(double x);
 	}
-
 
 	public final static Filter Box = new Filter("Box", 0.5)
 	{
@@ -340,7 +186,6 @@ public class FilterFactory
 			return 0;
 		}
 	};
-
 
 	public final static Filter Triangle = new Filter("Triangle", 1.0)
 	{
@@ -362,7 +207,6 @@ public class FilterFactory
 			return 0;
 		}
 	};
-
 
 	public final static Filter Quadratic = new Filter("Quadratic", 1.5)
 	{
@@ -423,41 +267,6 @@ public class FilterFactory
 		}
 	};
 
-
-	// https://www.intel.com/content/www/us/en/develop/documentation/ipp-dev-reference/top/volume-2-image-processing/ipp-ref-interpolation-in-image-geometry-transform/interpolation-with-two-parameter-cubic-filters.html
-	public final static Filter Cubic2 = new Filter("Cubic2", 2.0)
-	{
-		@Override
-		public double filter(double x)
-		{
-			double b = 0;
-			double c = 1;
-
-			if (x < -2.0)
-			{
-				return 0;
-			}
-			if (x < -1.0)
-			{
-				return Math.pow((12 - 9*b - 6*c) * Math.abs(x), 3) + Math.pow((-18 + 12*b + 6*c) * Math.abs(x), 2) + (6 - 2 * b) / 6;
-			}
-			if (x < 0.0)
-			{
-				return Math.pow((-b-6*c)*Math.abs(x), 3) + Math.pow((6*b+30*c)*Math.abs(x),2) + (-12*b-48*c)*Math.abs(x)+(8*b+24*c);
-			}
-			if (x < 1.0)
-			{
-				return Math.pow((-b-6*c)*Math.abs(x), 3) + Math.pow((6*b+30*c)*Math.abs(x),2) + (-12*b-48*c)*Math.abs(x)+(8*b+24*c);
-			}
-			if (x < 2.0)
-			{
-				return Math.pow((12 - 9*b - 6*c) * Math.abs(x), 3) + Math.pow((-18 + 12*b + 6*c) * Math.abs(x), 2) + (6 - 2 * b);
-			}
-			return 0;
-		}
-	};
-
-
 	public final static Filter Catrom = new Filter("Catrom", 2.0)
 	{
 		@Override
@@ -487,7 +296,6 @@ public class FilterFactory
 		}
 	};
 
-
 	public final static Filter Gaussian = new Filter("Gaussian", 1.25)
 	{
 		@Override
@@ -496,7 +304,6 @@ public class FilterFactory
 			return sqrt(2.0 / PI) * exp(-2.0 * x * x);
 		}
 	};
-
 
 	public final static Filter Sinc = new Filter("Sinc", 5)
 	{
@@ -507,11 +314,10 @@ public class FilterFactory
 			{
 				return 1;
 			}
-			double alpha = PI * x;
-			return sin(alpha) / alpha;
+			double t = PI * x;
+			return sin(t) / t;
 		}
 	};
-
 
 	public final static Filter Welch = new Filter("Welch", 1.0)
 	{
@@ -530,53 +336,73 @@ public class FilterFactory
 		}
 	};
 
-
 	public final static Filter Mitchell = new Filter("Mitchell", 2.0)
 	{
-        private static final double b = 1.0 / 3.0;
-        private static final double c = 1.0 / 3.0;
+		private final static double B = 1.0 / 3.0;
+		private final static double C = 1.0 / 3.0;
+
 
 		@Override
 		public double filter(double x)
 		{
-			double p0 = (6.0 - 2.0 * b) / 6.0;
-			double p2 = (-18.0 + 12.0 * b + 6.0 * c) / 6.0;
-			double p3 = (12.0 - 9.0 * b - 6.0 * c) / 6.0;
-			double q0 = (8.0 * b + 24.0 * c) / 6.0;
-			double q1 = (-12.0 * b - 48.0 * c) / 6.0;
-			double q2 = (6.0 * b + 30.0 * c) / 6.0;
-			double q3 = (-b - 6.0 * c) / 6.0;
-
-			if (x < -2.0)
+			if (x < 0.0f)
+			{
+				x = -x;
+			}
+			double tt = x * x;
+			if (x < 1.0)
+			{
+				x = (((12.0 - 9.0 * B - 6.0 * C) * (x * tt)) + ((-18.0 + 12.0 * B + 6.0 * C) * tt) + (6.0 - 2 * B));
+				return x / 6.0;
+			}
+			else if (x < 2.0)
+			{
+				x = (((-1.0 * B - 6.0 * C) * (x * tt)) + ((6.0 * B + 30.0 * C) * tt) + ((-12.0 * B - 48.0 * C) * x) + (8.0 * B + 24 * C));
+				return x / 6.0;
+			}
+			else
 			{
 				return 0.0;
 			}
-			if (x < -1.0)
+		}
+	};
+
+	public final static Filter Lanczos2 = new Filter("Lanczos2", 2.0)
+	{
+		private static double sindiv(double x)
+		{
+			return sin(x) / x;
+		}
+
+
+		@Override
+		public double filter(double x)
+		{
+			if (x == 0)
 			{
-				return q0 - x * (q1 - x * (q2 - x * q3));
+				return 1.0;
 			}
 			if (x < 0.0)
 			{
-				return p0 + x * x * (p2 - x * p3);
-			}
-			if (x < 1.0)
-			{
-				return p0 + x * x * (p2 + x * p3);
+				x = -x;
 			}
 			if (x < 2.0)
 			{
-				return q0 + x * (q1 + x * (q2 + x * q3));
+				x *= PI;
+				return sindiv(x) * sindiv(x / 2.0);
 			}
 			return 0.0;
 		}
 	};
 
-
-	/**
-	 * Source: http://code.google.com/p/java-image-scaling
-	 */
 	public final static Filter Lanczos3 = new Filter("Lanczos3", 3.0)
 	{
+		private static double sindiv(double x)
+		{
+			return sin(x) / x;
+		}
+
+
 		@Override
 		public double filter(double x)
 		{
@@ -591,16 +417,12 @@ public class FilterFactory
 			if (x < 3.0)
 			{
 				x *= PI;
-				return sin(x) / x * sin(x / 3.0) / (x / 3.0);
+				return sindiv(x) * sindiv(x / 3.0);
 			}
 			return 0.0;
 		}
 	};
 
-
-	/**
-	 * Source: http://code.google.com/p/java-image-scaling
-	 */
 	public final static Filter Hermite = new Filter("Hermite", 1.0)
 	{
 		@Override
@@ -608,7 +430,7 @@ public class FilterFactory
 		{
 			if (x < 0.0)
 			{
-				x = - x;
+				x = -x;
 			}
 			if (x < 1.0)
 			{
@@ -617,7 +439,6 @@ public class FilterFactory
 			return 0.0;
 		}
 	};
-
 
 	public final static Filter Jinc = new Filter("Jinc", 3.0)
 	{
@@ -628,8 +449,9 @@ public class FilterFactory
 			{
 				return 0.5 * PI;
 			}
-			return BesselOrderOne(PI*x)/x;
+			return BesselOrderOne(PI * x) / x;
 		}
+
 
 		private double BesselOrderOne(double x)
 		{
@@ -653,6 +475,7 @@ public class FilterFactory
 			}
 			return q;
 		}
+
 
 		private double J1(double x)
 		{
@@ -688,8 +511,9 @@ public class FilterFactory
 				p = p * x * x + Pone[i];
 				q = q * x * x + Qone[i];
 			}
-			return p/q;
+			return p / q;
 		}
+
 
 		private double P1(double x)
 		{
@@ -721,6 +545,7 @@ public class FilterFactory
 			}
 			return (p / q);
 		}
+
 
 		private double Q1(double x)
 		{
@@ -754,7 +579,6 @@ public class FilterFactory
 		}
 	};
 
-
 	public final static Filter Bohman = new Filter("Bohman", 1.0)
 	{
 		@Override
@@ -772,7 +596,6 @@ public class FilterFactory
 		}
 	};
 
-
 	public final static Filter Hanning = new Filter("Hanning", 1.0)
 	{
 		@Override
@@ -781,7 +604,6 @@ public class FilterFactory
 			return 0.5 + 0.5 * cos(PI * x);
 		}
 	};
-
 
 	public final static Filter Hamming = new Filter("Hamming", 1.0)
 	{
@@ -792,7 +614,6 @@ public class FilterFactory
 		}
 	};
 
-
 	public final static Filter Blackman = new Filter("Blackman", 1.0)
 	{
 		@Override
@@ -801,7 +622,6 @@ public class FilterFactory
 			return 0.42 + 0.50 * cos(PI * x) + 0.08 * cos(2.0 * PI * x);
 		}
 	};
-
 
 	public final static Filter Kasier = new Filter("Kasier", 1.0)
 	{
@@ -835,85 +655,48 @@ public class FilterFactory
 	};
 
 
-//	public static void main(String ... args)
-//	{
-//		try
-//		{
-//			for (Filter factory : values())
-//			{
-//				System.out.println();
-//				System.out.println();
-//				System.out.println("== " + factory + " ====================================================================");
-//				System.out.println();
-//
-//			{
-//				double[][] filter = factory.getKernel2D(5);
-//
-//				double w = 0;
-//				for (int y = 0; y < filter.length; y++)
+	public static void main(String... args)
+	{
+		try
+		{
+			for (Filter factory : values())
+			{
+				System.out.println();
+				System.out.println("== " + factory + " " + "=".repeat(80));
+				System.out.println();
+
 //				{
+//					double[] filter = factory.getKernel1D(5);
+//
+//					double w = 0;
 //					for (int x = 0; x < filter.length; x++)
 //					{
-//						w += filter[y][x];
-//						System.out.printf("%.5f ", filter[y][x]);
+//						w += filter[x];
+//						System.out.printf("%.5f ", filter[x]);
 //					}
 //					System.out.println();
+//					System.out.println("weight=" + w);
 //				}
-//				System.out.println("weight=" + w);
-//			}
 //
-//			System.out.println();
-//
-//			{
-//				double[] filter = factory.getKernel1D(5);
-//
-//				double w = 0;
-//				for (int x = 0; x < filter.length; x++)
-//				{
-//					w += filter[x];
-//					System.out.printf("%.5f ", filter[x]);
-//				}
 //				System.out.println();
-//				System.out.println("weight=" + w);
-//			}
-//
-//			System.out.println();
-//
-//			{
-//				int[][] filter = factory.getKernel2DInt(5);
-//
-//				int w = 0;
-//				for (int y = 0; y < filter.length; y++)
-//				{
-//					for (int x = 0; x < filter.length; x++)
-//					{
-//						w += filter[y][x];
-//						System.out.printf("%5d ", filter[y][x]);
-//					}
-//					System.out.println();
-//				}
-//				System.out.println("weight=" + w);
-//			}
-//
-//			System.out.println();
-//
-//			{
-//				int[] filter = factory.getKernel1DInt(5);
-//
-//				int w = 0;
-//				for (int x = 0; x < filter.length; x++)
-//				{
-//					w += filter[x];
-//					System.out.printf("%5d ", filter[x]);
-//				}
-//				System.out.println();
-//				System.out.println("weight=" + w);
-//			}
-//			}
-//		}
-//		catch (Throwable e)
-//		{
-//			e.printStackTrace(System.out);
-//		}
-//	}
+				{
+					int[][] filter = factory.getKernel2DInt(5);
+
+					for (int y = 0; y < filter.length; y++)
+					{
+						for (int x = 0; x < filter.length; x++)
+						{
+							System.out.printf("%6d ", filter[y][x]);
+						}
+						System.out.println();
+					}
+				}
+
+			}
+		}
+		catch (Throwable e)
+		{
+			e.printStackTrace(System.out);
+		}
+	}
 }

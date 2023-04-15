@@ -8,6 +8,9 @@ import java.awt.image.BufferedImage;
 import org.terifan.image_resampler.FilterFactory.Filter;
 
 
+/**
+ * Methods for slow but high quality image resizing.
+ */
 public class ImageResampler
 {
 	public static BufferedImage getScaledImageAspect(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, Filter aFilter)
@@ -176,15 +179,15 @@ public class ImageResampler
 	}
 
 
-	private static Color3d[][] transpose(Color3d[][] input)
+	private static Color3d[][] transpose(Color3d[][] aInput)
 	{
-		Color3d[][] output = new Color3d[input[0].length][input.length];
+		Color3d[][] output = new Color3d[aInput[0].length][aInput.length];
 
-		for (int y = 0; y < input.length; y++)
+		for (int y = 0; y < aInput.length; y++)
 		{
-			for (int x = 0; x < input[0].length; x++)
+			for (int x = 0; x < aInput[0].length; x++)
 			{
-				output[x][y] = input[y][x];
+				output[x][y] = aInput[y][x];
 			}
 		}
 
