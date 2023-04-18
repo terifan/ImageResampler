@@ -10,6 +10,8 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.imageio.ImageIO;
+import javax.swing.AbstractAction;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -44,6 +46,9 @@ public class App
 
 			JPanel panelImages = new JPanel(new GridLayout(2, 3, 5, 5));
 
+			JCheckBox srgb1 = new JCheckBox("SRGB", true);
+			JCheckBox srgb2 = new JCheckBox("SRGB", true);
+
 			JList list1 = new JList(FilterFactory.values());
 			JList list2 = new JList(FilterFactory.values());
 			list1.setSelectedIndex(0);
@@ -60,10 +65,10 @@ public class App
 						panelImages.validate();
 						long t0 = System.currentTimeMillis();
 						FilterFactory.Filter filter1 = FilterFactory.values()[list1.getSelectedIndex()];
-						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter1);
+						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb1.isSelected(), filter1);
 						long t1 = System.currentTimeMillis();
 						FilterFactory.Filter filter2 = FilterFactory.values()[list2.getSelectedIndex()];
-						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter2);
+						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb2.isSelected(), filter2);
 						long t2 = System.currentTimeMillis();
 						panelImages.add(new ImagePanel("Filter " + filter1.getName() + " " + (t1-t0) + "ms", filteredImage1));
 						panelImages.add(new ImagePanel("Filter " + filter2.getName() + " " + (t2-t1) + "ms", filteredImage2));
@@ -76,6 +81,16 @@ public class App
 					}
 				}
 			};
+			ActionListener changeListener = new ActionListener()
+			{
+				@Override
+				public void actionPerformed(ActionEvent aE)
+				{
+					filterListener.valueChanged(null);
+				}
+			};
+			srgb1.addActionListener(changeListener);
+			srgb2.addActionListener(changeListener);
 
 			ActionListener fileListener = new ActionListener()
 			{
@@ -108,8 +123,14 @@ public class App
 
 			JPanel mainPanel = new JPanel(new BorderLayout());
 			JPanel filtersPanel = new JPanel(new BorderLayout());
-			filtersPanel.add(new JScrollPane(list1), BorderLayout.WEST);
-			filtersPanel.add(new JScrollPane(list2), BorderLayout.EAST);
+			JPanel filter1Panel = new JPanel(new BorderLayout());
+			JPanel filter2Panel = new JPanel(new BorderLayout());
+			filter1Panel.add(srgb1, BorderLayout.NORTH);
+			filter2Panel.add(srgb2, BorderLayout.NORTH);
+			filter1Panel.add(new JScrollPane(list1), BorderLayout.CENTER);
+			filter2Panel.add(new JScrollPane(list2), BorderLayout.CENTER);
+			filtersPanel.add(filter1Panel, BorderLayout.WEST);
+			filtersPanel.add(filter2Panel, BorderLayout.EAST);
 			mainPanel.add(filtersPanel, BorderLayout.WEST);
 			mainPanel.add(panelImages, BorderLayout.CENTER);
 
