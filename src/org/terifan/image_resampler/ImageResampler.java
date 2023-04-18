@@ -136,17 +136,19 @@ public class ImageResampler
 	private static Color3d[][] resample(Color3d[][] aInput, int aSrcWidth, int aSrcHeight, int aNewWidth, Filter aKernel)
 	{
 		Color3d[][] output = new Color3d[aSrcHeight][aNewWidth];
-		double filterLen = Math.max((double)aSrcWidth / aNewWidth, 1) * 4.0;
-		double scale = Math.min((double)aNewWidth / aSrcWidth, 1);
-		int srcWidth = aSrcWidth - 1;
 
 		try (FixedThreadExecutor exe = new FixedThreadExecutor(1f))
 		{
-			for (int _y = 0; _y < aSrcHeight; _y++)
+			for (int y = 0; y < aSrcHeight; y++)
 			{
-				int y = _y;
+				Color3d[] _input = aInput[y];
+				Color3d[] _output = output[y];
+
 				exe.submit(() ->
 				{
+					double filterLen = Math.max((double)aSrcWidth / aNewWidth, 1) * 4.0;
+					double scale = Math.min((double)aNewWidth / aSrcWidth, 1);
+					int srcWidth = aSrcWidth - 1;
 					for (int x = 0; x < aNewWidth; x++)
 					{
 						double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
@@ -166,14 +168,14 @@ public class ImageResampler
 							double k = aKernel.filter(xi) * (0 <= yi && yi <= 1 ? 1 - Math.abs(yi - 0.5) * 2 : 0);
 							int q = Math.min(Math.max(inputX, 0), srcWidth);
 
-							Color3d c = aInput[y][q];
+							Color3d c = _input[q];
 							r += k * c.r;
 							g += k * c.g;
 							b += k * c.b;
 							w += k;
 						}
 
-						output[y][x] = new Color3d(r / w, g / w, b / w);
+						_output[x] = new Color3d(r / w, g / w, b / w);
 					}
 				});
 			}
