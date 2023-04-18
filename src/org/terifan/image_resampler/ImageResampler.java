@@ -55,7 +55,7 @@ public class ImageResampler
 	{
 		if (aWidth < aSource.getWidth() || aHeight < aSource.getHeight())
 		{
-			aSource = resizeDown(aSource, aWidth, aHeight, aSRGB, aFilter);
+			aSource = resizeDown2(aSource, aWidth, aHeight, aSRGB, aFilter);
 		}
 		if (aWidth > aSource.getWidth() || aHeight > aSource.getHeight())
 		{
@@ -82,6 +82,95 @@ public class ImageResampler
 		g.dispose();
 
 		return output;
+	}
+
+
+	public static BufferedImage resizeDown2(BufferedImage aImage, int aDstWidth, int aDstHeight, boolean aSRGB, Filter aFilter)
+	{
+		int srcWidth = aImage.getWidth();
+		int srcHeight = aImage.getHeight();
+
+		Color3d[][] pixels = new Color3d[srcHeight][srcWidth];
+
+		for (int y = 0; y < srcHeight; y++)
+		{
+			for (int x = 0; x < srcWidth; x++)
+			{
+				if (aSRGB)
+				{
+					pixels[y][x] = fromSRGB(aImage.getRGB(x, y));
+				}
+				else
+				{
+					pixels[y][x] = fromRGB(aImage.getRGB(x, y));
+				}
+			}
+		}
+
+		Color3d[][] output = new Color3d[aDstHeight][aDstWidth];
+		int fs = Math.max(2, srcWidth * 1 / aDstWidth) | 1;
+		int[][] kernel = aFilter.getKernel2DInt(fs);
+		System.out.println(fs);
+
+		for (int dy = 0; dy < aDstHeight; dy++)
+		{
+			for (int dx = 0; dx < aDstWidth; dx++)
+			{
+
+				double r = 0;
+				double g = 0;
+				double b = 0;
+				double w = 0;
+
+				for (int fy = 0; fy < fs; fy++)
+				{
+					for (int fx = 0; fx < fs; fx++)
+					{
+						int sx = dx*srcWidth/aDstWidth + fx - fs/2;
+						int sy = dy*srcHeight/aDstHeight + fy - fs/2;
+
+						sx = Math.max(Math.min(sx, srcWidth-1), 0);
+						sy = Math.max(Math.min(sy, srcHeight-1), 0);
+
+						Color3d c = pixels[sy][sx];
+
+						double k = kernel[fy][fx];
+
+						r += k * c.r;
+						g += k * c.g;
+						b += k * c.b;
+						w += k;
+					}
+				}
+
+				output[dy][dx] = new Color3d(r / w, g / w, b / w);
+
+			}
+		}
+
+
+
+
+		BufferedImage outImage = new BufferedImage(aDstWidth, aDstHeight, BufferedImage.TYPE_INT_RGB);
+
+		for (int sy = 0; sy < aDstHeight; sy++)
+		{
+			for (int sx = 0; sx < aDstWidth; sx++)
+			{
+				Color3d c = output[sy][sx];
+
+				if (aSRGB)
+				{
+					outImage.setRGB(sx, sy, toSRGB(c));
+				}
+				else
+				{
+					outImage.setRGB(sx, sy, toRGB(c));
+				}
+			}
+		}
+
+		return outImage;
 	}
 
 
@@ -141,37 +230,47 @@ public class ImageResampler
 		Color3d[][] output = new Color3d[aSrcHeight][aNewWidth];
 
 		int filterLen = aKernel.length;
+		int srcWidth = aSrcWidth - 1;
 
-		for (int y = 0; y < aSrcHeight; y++)
+		try (FixedThreadExecutor exe = new FixedThreadExecutor(1f))
 		{
-			for (int x = 0; x < aNewWidth; x++)
+			for (int _y = 0; _y < aSrcHeight; _y++)
 			{
-				double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
-				double filterStartX = centerX - filterLen / 2.0;
-				int startIndex = (int)Math.ceil(filterStartX - 0.5);
-
-				double r = 0;
-				double g = 0;
-				double b = 0;
-				double w = 0;
-
-				for (int f = 0; f < filterLen; f++)
+				int y = _y;
+				exe.submit(() ->
 				{
-					int inputX = startIndex + f;
+					for (int x = 0; x < aNewWidth; x++)
+					{
+						double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
+						double filterStartX = centerX - filterLen / 2.0;
+						int startIndex = (int)Math.ceil(filterStartX - 0.5);
 
-					double z = (inputX + 0.5 - filterStartX) / (filterLen);
-					double window = 0 <= z && z <= 1 ? 1 - Math.abs(z - 0.5) * 2 : 0;
-					double k = aKernel[f] * window;
+						double r = 0;
+						double g = 0;
+						double b = 0;
+						double w = 0;
 
-					Color3d c = aInput[y][Math.min(Math.max(inputX, 0), aSrcWidth - 1)];
+						for (int f = 0; f < filterLen; f++)
+						{
+							int inputX = startIndex + f;
 
-					r += k * c.r;
-					g += k * c.g;
-					b += k * c.b;
-					w += k;
-				}
+							double z = (inputX + 0.5 - filterStartX) / filterLen;
+							double window = 0 <= z && z <= 1 ? 1 - Math.abs(z - 0.5) * 2 : 0;
+							double k = aKernel[f] * window;
 
-				output[y][x] = new Color3d(r / w, g / w, b / w);
+							int q = Math.min(Math.max(inputX, 0), srcWidth);
+
+							Color3d c = aInput[y][q];
+
+							r += k * c.r;
+							g += k * c.g;
+							b += k * c.b;
+							w += k;
+						}
+
+						output[y][x] = new Color3d(r / w, g / w, b / w);
+					}
+				});
 			}
 		}
 

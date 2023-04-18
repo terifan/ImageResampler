@@ -77,7 +77,6 @@ public class FilterFactory
 		}
 
 
-		@Deprecated
 		public int[][] getKernel2DInt(int aDiameter)
 		{
 			double step = mRadius / (aDiameter / 2.0);
@@ -93,7 +92,6 @@ public class FilterFactory
 				{
 					double d = sqrt(((x - c) * (x - c) + (y - c) * (y - c)) * step2);
 					double v = filter(d);
-
 					kernel[y][x] = v;
 					weight += v;
 				}
@@ -103,6 +101,7 @@ public class FilterFactory
 			int[][] tmp = new int[aDiameter][aDiameter];
 
 			// ensure the weight of the kernel is FIXED_POINT_SCALE
+
 			double bias = 0.5;
 			step = 0.25;
 
@@ -162,7 +161,6 @@ public class FilterFactory
 			{
 				double d = (x - c) * step;
 				double v = filter(d);
-
 				kernel[x] = v;
 			}
 
@@ -665,22 +663,23 @@ public class FilterFactory
 				System.out.println("== " + factory + " " + "=".repeat(80));
 				System.out.println();
 
-//				{
-//					double[] filter = factory.getKernel1D(5);
-//
-//					double w = 0;
-//					for (int x = 0; x < filter.length; x++)
-//					{
-//						w += filter[x];
-//						System.out.printf("%.5f ", filter[x]);
-//					}
-//					System.out.println();
-//					System.out.println("weight=" + w);
-//				}
-//
-//				System.out.println();
 				{
-					int[][] filter = factory.getKernel2DInt(5);
+					double[] filter = factory.getKernel1D(9);
+
+					double w = 0;
+					for (int x = 0; x < filter.length; x++)
+					{
+						w += filter[x];
+						System.out.printf("%.5f ", filter[x]);
+					}
+					System.out.println();
+					System.out.println("weight=" + w);
+				}
+
+				System.out.println();
+
+				{
+					int[][] filter = factory.getKernel2DInt(9);
 
 					for (int y = 0; y < filter.length; y++)
 					{
