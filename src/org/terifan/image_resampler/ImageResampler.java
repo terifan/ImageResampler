@@ -90,7 +90,7 @@ public class ImageResampler
 		int srcWidth = aImage.getWidth();
 		int srcHeight = aImage.getHeight();
 
-		Color3d[][] pixels = new Color3d[srcHeight][srcWidth];
+		double[][][] pixels = new double[srcHeight][srcWidth][3];
 
 		for (int y = 0; y < srcHeight; y++)
 		{
@@ -98,11 +98,11 @@ public class ImageResampler
 			{
 				if (aSRGB)
 				{
-					pixels[y][x] = fromSRGB(aImage.getRGB(x, y));
+					fromSRGB(aImage.getRGB(x, y), pixels[y][x]);
 				}
 				else
 				{
-					pixels[y][x] = fromRGB(aImage.getRGB(x, y));
+					fromRGB(aImage.getRGB(x, y), pixels[y][x]);
 				}
 			}
 		}
@@ -116,7 +116,7 @@ public class ImageResampler
 		{
 			for (int sx = 0; sx < aDstWidth; sx++)
 			{
-				Color3d c = pixels[sy][sx];
+				double[] c = pixels[sy][sx];
 
 				if (aSRGB)
 				{
@@ -133,49 +133,74 @@ public class ImageResampler
 	}
 
 
-	private static Color3d[][] resample(Color3d[][] aInput, int aSrcWidth, int aSrcHeight, int aNewWidth, Filter aKernel)
+	private static double[][][] resample(double[][][] aInput, int aSrcWidth, int aSrcHeight, int aNewWidth, Filter aKernel)
 	{
-		Color3d[][] output = new Color3d[aSrcHeight][aNewWidth];
-
-		try (FixedThreadExecutor exe = new FixedThreadExecutor(1f))
+		double[][][] output = new double[aSrcHeight][aNewWidth][3];
+		System.out.println(aKernel.getRadius());
+		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
 		{
+//			double filterLen = Math.max(aSrcWidth / (double)aNewWidth, 1) * 4.0;
+			double filterLen = Math.max(aSrcWidth / (double)aNewWidth, 1) * aKernel.getRadius() * 2;
+			double scale = Math.min(aNewWidth / (double)aSrcWidth, 1);
+
 			for (int y = 0; y < aSrcHeight; y++)
 			{
-				Color3d[] _input = aInput[y];
-				Color3d[] _output = output[y];
+				double[][] _input = aInput[y];
+				double[][] _output = output[y];
 
-				exe.submit(() ->
+				executor.submit(() ->
 				{
-					double filterLen = Math.max((double)aSrcWidth / aNewWidth, 1) * 4.0;
-					double scale = Math.min((double)aNewWidth / aSrcWidth, 1);
-					int srcWidth = aSrcWidth - 1;
 					for (int x = 0; x < aNewWidth; x++)
 					{
 						double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
 						double filterStartX = centerX - filterLen / 2.0;
-						int startIndex = (int)Math.ceil(filterStartX - 0.5);
+						int inputX = (int)Math.ceil(filterStartX - 0.5);
 
 						double r = 0;
 						double g = 0;
 						double b = 0;
 						double w = 0;
 
-						for (int f = 0; f < filterLen; f++)
+						for (int f = 0; f < filterLen; f++, inputX++)
 						{
-							int inputX = startIndex + f;
 							double xi = (inputX + 0.5 - centerX) * scale;
 							double yi = (inputX + 0.5 - filterStartX) / filterLen;
-							double k = aKernel.filter(xi) * (0 <= yi && yi <= 1 ? 1 - Math.abs(yi - 0.5) * 2 : 0);
-							int q = Math.min(Math.max(inputX, 0), srcWidth);
 
-							Color3d c = _input[q];
-							r += k * c.r;
-							g += k * c.g;
-							b += k * c.b;
-							w += k;
+							if (yi >= 0 && yi <= 1)
+							{
+								double k = aKernel.filter(xi) * (1 - Math.abs(yi - 0.5) * 2);
+								int q = Math.min(Math.max(inputX, 0), aSrcWidth - 1);
+
+								double[] c = _input[q];
+								r += k * c[0];
+								g += k * c[1];
+								b += k * c[2];
+								w += k;
+							}
 						}
 
-						_output[x] = new Color3d(r / w, g / w, b / w);
+//						for (int f = 0; f < filterLen; f++, inputX++)
+//						{
+//							double xi = (inputX + 0.5 - centerX) * scale;
+//							double yi = (inputX + 0.5 - filterStartX) / filterLen;
+//
+//							double k = aKernel.filter(xi) * aKernel.filter((yi - 0.5) * 2);
+//							int q = Math.min(Math.max(inputX, 0), aSrcWidth - 1);
+//
+//							double[] c = _input[q];
+//							r += k * c[0];
+//							g += k * c[1];
+//							b += k * c[2];
+//							w += k;
+//						}
+
+						if (w > 0)
+						{
+							double iw = 1 / w;
+							_output[x][0] = r * iw;
+							_output[x][1] = g * iw;
+							_output[x][2] = b * iw;
+						}
 					}
 				});
 			}
@@ -185,9 +210,9 @@ public class ImageResampler
 	}
 
 
-	private static Color3d[][] transpose(Color3d[][] aInput)
+	private static double[][][] transpose(double[][][] aInput)
 	{
-		Color3d[][] output = new Color3d[aInput[0].length][aInput.length];
+		double[][][] output = new double[aInput[0].length][aInput.length][3];
 
 		for (int y = 0; y < aInput.length; y++)
 		{
@@ -220,65 +245,42 @@ public class ImageResampler
 	}
 
 
-	private static class Color3d
-	{
-		double r, g, b;
-
-
-		public Color3d()
-		{
-		}
-
-
-		public Color3d(double aR, double aG, double aB)
-		{
-			this.r = aR;
-			this.g = aG;
-			this.b = aB;
-		}
-	}
-
-
 	private final static double GAMMA = 2.4;
 
 
-	private static int toRGB(Color3d aColor)
+	private static int toRGB(double[] aColor)
 	{
-		int r = mul8(aColor.r) << 16;
-		int g = mul8(aColor.g) << 8;
-		int b = mul8(aColor.b);
+		int r = mul8(aColor[0]) << 16;
+		int g = mul8(aColor[1]) << 8;
+		int b = mul8(aColor[2]);
 
 		return 0xff000000 | r + g + b;
 	}
 
 
-	private static int toSRGB(Color3d aColor)
+	private static int toSRGB(double[] aColor)
 	{
-		int r = mul8(f(aColor.r)) << 16;
-		int g = mul8(f(aColor.g)) << 8;
-		int b = mul8(f(aColor.b));
+		int r = mul8(f(aColor[0])) << 16;
+		int g = mul8(f(aColor[1])) << 8;
+		int b = mul8(f(aColor[2]));
 
 		return 0xff000000 | r + g + b;
 	}
 
 
-	private static Color3d fromRGB(int aColor)
+	private static void fromRGB(int aColor, double[] aDest)
 	{
-		Color3d c = new Color3d();
-		c.r = (0xff & (aColor >> 16)) / 255f;
-		c.g = (0xff & (aColor >>  8)) / 255f;
-		c.b = (0xff & (aColor      )) / 255f;
-		return c;
+		aDest[0] = (0xff & (aColor >> 16)) / 255f;
+		aDest[1] = (0xff & (aColor >>  8)) / 255f;
+		aDest[2] = (0xff & (aColor      )) / 255f;
 	}
 
 
-	private static Color3d fromSRGB(int aColor)
+	private static void fromSRGB(int aColor, double[] aDest)
 	{
-		Color3d c = new Color3d();
-		c.r = f_inv((0xff & (aColor >> 16)) / 255.0);
-		c.g = f_inv((0xff & (aColor >> 8)) / 255.0);
-		c.b = f_inv((0xff & (aColor)) / 255.0);
-		return c;
+		aDest[0] = f_inv((0xff & (aColor >> 16)) / 255.0);
+		aDest[1] = f_inv((0xff & (aColor >> 8)) / 255.0);
+		aDest[2] = f_inv((0xff & (aColor)) / 255.0);
 	}
 
 
