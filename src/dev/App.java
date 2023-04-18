@@ -196,23 +196,17 @@ public class App
 
 	static class ImagePanel extends JPanel
 	{
-		private BufferedImage mImage;
-		private String mTitle;
-
-
 		ImagePanel(String aTitle, BufferedImage aImage)
 		{
-			mImage = aImage;
-			mTitle = aTitle;
 			setLayout(new BorderLayout());
-			add(new JLabel(mTitle), BorderLayout.NORTH);
+			add(new JLabel(aTitle), BorderLayout.NORTH);
 			add(new JPanel()
 			{
 				@Override
 				protected void paintComponent(Graphics aGraphics)
 				{
-//					aGraphics.drawImage(mImage, 0, 0, null);
-					aGraphics.drawImage(mImage, 0, 0, getHeight(), getHeight(), null);
+//					aGraphics.drawImage(aImage, 0, 0, null);
+					aGraphics.drawImage(aImage, 0, 0, getHeight(), getHeight(), null);
 				}
 			}, BorderLayout.CENTER);
 		}
