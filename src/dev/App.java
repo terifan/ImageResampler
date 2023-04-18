@@ -60,10 +60,10 @@ public class App
 						panelImages.validate();
 						long t0 = System.currentTimeMillis();
 						FilterFactory.Filter filter1 = FilterFactory.values()[list1.getSelectedIndex()];
-						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, !true, filter1);
+						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter1);
 						long t1 = System.currentTimeMillis();
 						FilterFactory.Filter filter2 = FilterFactory.values()[list2.getSelectedIndex()];
-						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, !true, filter2);
+						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter2);
 						long t2 = System.currentTimeMillis();
 						panelImages.add(new ImagePanel("Filter " + filter1.getName() + " " + (t1-t0) + "ms", filteredImage1));
 						panelImages.add(new ImagePanel("Filter " + filter2.getName() + " " + (t2-t1) + "ms", filteredImage2));
@@ -87,6 +87,7 @@ public class App
 						inImage = ImageIO.read((File)fileList.getModel().getSelectedItem());
 						long t0 = System.currentTimeMillis();
 						refImage = ImageResamplerFast.getScaledImage(inImage, targetW, targetH, Quality.BICUBIC);
+//						refImage = SincImageResampler.resampleImage(inImage, targetW, targetH);
 						long t1 = System.currentTimeMillis();
 						refTime = t1 - t0;
 						filterListener.valueChanged(null);
