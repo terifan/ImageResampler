@@ -45,13 +45,7 @@ public class Util
 			{
 				int c1 = aImage1.getRGB(x, y);
 				int c2 = aImage2.getRGB(x, y);
-				int dr = Math.abs((0xff & (c1 >> 16)) ^ (0xff & (c2 >> 16)));
-				int dg = Math.abs((0xff & (c1 >>  8)) ^ (0xff & (c2 >>  8)));
-				int db = Math.abs((0xff & (c1 >>  0)) ^ (0xff & (c2 >>  0)));
-				int r = dr << 16;
-				int g = dg <<  8;
-				int b = db <<  0;
-				diffImage.setRGB(x, y, r + g + b);
+				diffImage.setRGB(x, y, c1 ^ c2);
 			}
 		}
 
@@ -76,6 +70,7 @@ public class Util
 				@Override
 				protected void paintComponent(Graphics aGraphics)
 				{
+//					aGraphics.drawImage(mImage, 0, 0, null);
 					aGraphics.drawImage(mImage, 0, 0, getHeight(), getHeight(), null);
 				}
 			}, BorderLayout.CENTER);

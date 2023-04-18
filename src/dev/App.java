@@ -27,13 +27,17 @@ public class App
 {
 	private static BufferedImage inImage;
 	private static BufferedImage refImage;
+	private static long refTime;
 
 
 	public static void main(String... args)
 	{
 		try
 		{
-			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers").listFiles(f->f.isFile()));
+//			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Image Compression Suit").listFiles(f->f.isFile()));
+//			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers").listFiles(f->f.isFile()));
+			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers\\4k").listFiles(f->f.isFile()));
+//			JComboBox fileList = new JComboBox(new File("D:\\Pictures").listFiles(f->f.isFile()));
 
 			int targetW = 200;
 			int targetH = 200;
@@ -56,14 +60,14 @@ public class App
 						panelImages.validate();
 						long t0 = System.currentTimeMillis();
 						FilterFactory.Filter filter1 = FilterFactory.values()[list1.getSelectedIndex()];
-						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter1);
+						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, !true, filter1);
 						long t1 = System.currentTimeMillis();
 						FilterFactory.Filter filter2 = FilterFactory.values()[list2.getSelectedIndex()];
-						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, true, filter2);
+						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, !true, filter2);
 						long t2 = System.currentTimeMillis();
 						panelImages.add(new ImagePanel("Filter " + filter1.getName() + " " + (t1-t0) + "ms", filteredImage1));
 						panelImages.add(new ImagePanel("Filter " + filter2.getName() + " " + (t2-t1) + "ms", filteredImage2));
-						panelImages.add(new ImagePanel("Java Bicubic", refImage));
+						panelImages.add(new ImagePanel("Java Bicubic " + refTime + "ms", refImage));
 						panelImages.add(new ImagePanel(filter1.getName() + " DIFF " + filter2.getName(), createDiff(filteredImage1, filteredImage2)));
 						panelImages.add(new ImagePanel(filter1.getName() + " XOR " + filter2.getName(), createXor(filteredImage1, filteredImage2)));
 						panelImages.add(new ImagePanel(filter1.getName() + " DIFF Java Bicubic", createDiff(filteredImage1, refImage)));
@@ -81,7 +85,10 @@ public class App
 					try
 					{
 						inImage = ImageIO.read((File)fileList.getModel().getSelectedItem());
+						long t0 = System.currentTimeMillis();
 						refImage = ImageResamplerFast.getScaledImage(inImage, targetW, targetH, Quality.BICUBIC);
+						long t1 = System.currentTimeMillis();
+						refTime = t1 - t0;
 						filterListener.valueChanged(null);
 					}
 					catch (Exception e)
@@ -115,9 +122,6 @@ public class App
 			frame.setLocationRelativeTo(null);
 			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 			frame.setVisible(true);
-
-//			ImageIO.write(outImage, "png", new File("d:\\dev\\output.png"));
-//			ImageIO.write(diffImage, "png", new File("d:\\dev\\output2.png"));
 		}
 		catch (Exception e)
 		{
