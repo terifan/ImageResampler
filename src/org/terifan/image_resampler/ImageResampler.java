@@ -125,7 +125,7 @@ public class ImageResampler
 		double filterLen = Math.max(aSrcWidth / (double)aNewWidth, 1) * aKernel.getRadius() * 2;
 		double scale = Math.min(aNewWidth / (double)aSrcWidth, 1);
 
-		Parallel.range(0, aSrcHeight, 10).forEach((y0, y1) ->
+		Parallel.rangeClosed(0, aSrcHeight, 10).forEach((y0, y1) ->
 		{
 			for (int y = y0; y < y1; y++)
 			{

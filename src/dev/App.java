@@ -6,7 +6,9 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -35,9 +37,9 @@ public class App
 		try
 		{
 //			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Image Compression Suit").listFiles(f->f.isFile()));
-			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers").listFiles(f->f.isFile()));
+//			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers").listFiles(f->f.isFile()));
 //			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers\\4k").listFiles(f->f.isFile()));
-//			JComboBox fileList = new JComboBox(new File("D:\\Pictures").listFiles(f->f.isFile()));
+			JComboBox fileList = new JComboBox(new File("D:\\Pictures").listFiles(f->f.isFile()));
 
 			int targetW = 200;
 			int targetH = 200;
@@ -59,23 +61,33 @@ public class App
 				{
 					if (aEvent == null || !aEvent.getValueIsAdjusting())
 					{
-						panelImages.removeAll();
-						panelImages.validate();
-						long t0 = System.currentTimeMillis();
-						FilterFactory.Filter filter1 = FilterFactory.values()[list1.getSelectedIndex()];
-						BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb1.isSelected(), filter1);
-						long t1 = System.currentTimeMillis();
-						FilterFactory.Filter filter2 = FilterFactory.values()[list2.getSelectedIndex()];
-						BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb2.isSelected(), filter2);
-						long t2 = System.currentTimeMillis();
-						panelImages.add(new ImagePanel("Filter " + filter1.getName() + " " + (t1-t0) + "ms", filteredImage1));
-						panelImages.add(new ImagePanel("Filter " + filter2.getName() + " " + (t2-t1) + "ms", filteredImage2));
-						panelImages.add(new ImagePanel("Java Bicubic " + refTime + "ms", refImage));
-						panelImages.add(new ImagePanel(filter1.getName() + " DIFF " + filter2.getName(), createDiff(filteredImage1, filteredImage2)));
-						panelImages.add(new ImagePanel(filter1.getName() + " XOR " + filter2.getName(), createXor(filteredImage1, filteredImage2)));
-						panelImages.add(new ImagePanel(filter1.getName() + " DIFF Java Bicubic", createDiff(filteredImage1, refImage)));
-						panelImages.validate();
-						panelImages.repaint();
+						try
+						{
+							panelImages.removeAll();
+							panelImages.validate();
+							long t0 = System.currentTimeMillis();
+							FilterFactory.Filter filter1 = FilterFactory.values()[list1.getSelectedIndex()];
+							BufferedImage filteredImage1 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb1.isSelected(), filter1);
+							long t1 = System.currentTimeMillis();
+							FilterFactory.Filter filter2 = FilterFactory.values()[list2.getSelectedIndex()];
+							BufferedImage filteredImage2 = ImageResampler.getScaledImage(inImage, targetW, targetH, srgb2.isSelected(), filter2);
+							long t2 = System.currentTimeMillis();
+							int jpeg1 = pack(filteredImage1);
+							int jpeg2 = pack(filteredImage2);
+							int jpeg3 = pack(refImage);
+							panelImages.add(new ImagePanel("Filter " + filter1.getName() + " " + (t1-t0) + "ms (JPEG "+jpeg1+" bytes)", filteredImage1));
+							panelImages.add(new ImagePanel("Filter " + filter2.getName() + " " + (t2-t1) + "ms (JPEG "+jpeg2+" bytes)", filteredImage2));
+							panelImages.add(new ImagePanel("Java Bicubic " + refTime + "ms (JPEG "+jpeg3+" bytes)", refImage));
+							panelImages.add(new ImagePanel(filter1.getName() + " DIFF " + filter2.getName(), createDiff(filteredImage1, filteredImage2)));
+							panelImages.add(new ImagePanel(filter1.getName() + " XOR " + filter2.getName(), createXor(filteredImage1, filteredImage2)));
+							panelImages.add(new ImagePanel(filter1.getName() + " DIFF Java Bicubic", createDiff(filteredImage1, refImage)));
+							panelImages.validate();
+							panelImages.repaint();
+						}
+						catch (Exception e)
+						{
+							e.printStackTrace(System.out);
+						}
 					}
 				}
 			};
@@ -207,8 +219,17 @@ public class App
 				{
 //					aGraphics.drawImage(aImage, 0, 0, null);
 					aGraphics.drawImage(aImage, 0, 0, getHeight(), getHeight(), null);
+//					aGraphics.drawImage(aImage, 0, getHeight()-aImage.getHeight(), null);
 				}
 			}, BorderLayout.CENTER);
 		}
+	}
+
+
+	private static int pack(BufferedImage aFilteredImage2) throws IOException
+	{
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(aFilteredImage2, "jpeg", baos);
+		return baos.size();
 	}
 }
