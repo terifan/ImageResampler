@@ -5,7 +5,6 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
-import java.util.stream.IntStream;
 import org.terifan.image_resampler.FilterFactory.Filter;
 
 
@@ -126,49 +125,43 @@ public class ImageResampler
 		double filterLen = Math.max(aSrcWidth / (double)aNewWidth, 1) * aKernel.getRadius() * 2;
 		double scale = Math.min(aNewWidth / (double)aSrcWidth, 1);
 
-		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
+		Parallel.range(0, aSrcHeight, 10).forEach((y0, y1) ->
 		{
-			for (int y = 0; y < aSrcHeight; y++)
+			for (int y = y0; y < y1; y++)
 			{
-				double[][] _input = aInput[y];
-				double[][] _output = output[y];
-
-				executor.submit(() ->
+				for (int x = 0; x < aNewWidth; x++)
 				{
-					for (int x = 0; x < aNewWidth; x++)
+					double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
+					double filterStartX = centerX - filterLen / 2.0;
+					int inputX = (int)Math.ceil(filterStartX - 0.5);
+
+					double r = 0;
+					double g = 0;
+					double b = 0;
+					double w = 0;
+
+					for (int f = 0; f < filterLen; f++, inputX++)
 					{
-						double centerX = (0.5 + x) / aNewWidth * aSrcWidth;
-						double filterStartX = centerX - filterLen / 2.0;
-						int inputX = (int)Math.ceil(filterStartX - 0.5);
+						double xi = (inputX + 0.5 - centerX) * scale;
+						double yi = (inputX + 0.5 - filterStartX) / filterLen;
 
-						double r = 0;
-						double g = 0;
-						double b = 0;
-						double w = 0;
+						double k = yi >= 0 && yi <= 1 ? aKernel.filter(xi) * (1 - Math.abs(yi - 0.5) * 2) : 0;
+						int q = Math.min(Math.max(inputX, 0), aSrcWidth - 1);
 
-						for (int f = 0; f < filterLen; f++, inputX++)
-						{
-							double xi = (inputX + 0.5 - centerX) * scale;
-							double yi = (inputX + 0.5 - filterStartX) / filterLen;
-
-							double k = yi >= 0 && yi <= 1 ? aKernel.filter(xi) * (1 - Math.abs(yi - 0.5) * 2) : 0;
-							int q = Math.min(Math.max(inputX, 0), aSrcWidth - 1);
-
-							double[] c = _input[q];
-							r += k * c[0];
-							g += k * c[1];
-							b += k * c[2];
-							w += k;
-						}
-
-						double iw = w == 0 ? 0 : 1 / w;
-						_output[x][0] = r * iw;
-						_output[x][1] = g * iw;
-						_output[x][2] = b * iw;
+						double[] c = aInput[y][q];
+						r += k * c[0];
+						g += k * c[1];
+						b += k * c[2];
+						w += k;
 					}
-				});
+
+					double iw = w == 0 ? 0 : 1 / w;
+					output[y][x][0] = r * iw;
+					output[y][x][1] = g * iw;
+					output[y][x][2] = b * iw;
+				}
 			}
-		}
+		});
 
 		return output;
 	}
@@ -178,13 +171,13 @@ public class ImageResampler
 	{
 		double[][][] output = new double[aInput[0].length][aInput.length][3];
 
-		for (int y = 0; y < aInput.length; y++)
+		Parallel.range(0, aInput.length).forEach(y ->
 		{
 			for (int x = 0; x < aInput[0].length; x++)
 			{
 				output[x][y] = aInput[y][x];
 			}
-		}
+		});
 
 		return output;
 	}
@@ -208,274 +201,69 @@ public class ImageResampler
 		return aSource;
 	}
 
-
 	private final static double GAMMA = 2.4;
-
-
-//	private static void toRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		IntStream.range(0, aImage.getHeight()).parallel().forEach(y ->
-//		{
-//			double[][] col = aColors[y];
-//
-//			for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//			{
-//				double[] c = col[x];
-//
-//				int r = mul8(c[0]) << 16;
-//				int g = mul8(c[1]) << 8;
-//				int b = mul8(c[2]);
-//
-//				aImage.setRGB(x, y, 0xff000000 | r + g + b);
-//			}
-//		});
-//	}
-//
-//
-//	private static void toSRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		IntStream.range(0, aImage.getHeight()).parallel().forEach(y ->
-//		{
-//			double[][] col = aColors[y];
-//
-//			for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//			{
-//				double[] c = col[x];
-//
-//				int r = mul8(gamme(c[0])) << 16;
-//				int g = mul8(gamme(c[1])) << 8;
-//				int b = mul8(gamme(c[2]));
-//
-//				aImage.setRGB(x, y, 0xff000000 | r + g + b);
-//			}
-//		});
-//	}
-//
-//
-//	private static void fromRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		IntStream.range(0, aImage.getHeight()).parallel().forEach(y ->
-//		{
-//			double[][] col = aColors[y];
-//
-//			for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//			{
-//				int aColor = aImage.getRGB(x, y);
-//				col[x][0] = (0xff & (aColor >> 16)) / 255f;
-//				col[x][1] = (0xff & (aColor >>  8)) / 255f;
-//				col[x][2] = (0xff & (aColor      )) / 255f;
-//			}
-//		});
-//	}
-//
-//
-//	private static void fromSRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		IntStream.range(0, aImage.getHeight()).parallel().forEach(y ->
-//		{
-//			double[][] col = aColors[y];
-//
-//			for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//			{
-//				int aColor = aImage.getRGB(x, y);
-//				col[x][0] = gamma_inv((0xff & (aColor >> 16)) / 255.0);
-//				col[x][1] = gamma_inv((0xff & (aColor >> 8)) / 255.0);
-//				col[x][2] = gamma_inv((0xff & (aColor)) / 255.0);
-//			}
-//		});
-//	}
 
 
 	private static void toRGB(BufferedImage aImage, double[][][] aColors)
 	{
-		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
+		Parallel.range(0, aImage.getHeight()).forEach(y ->
 		{
-			IntStream.range(0, aImage.getHeight()).forEach(y ->
+			for (int x = 0, w = aImage.getWidth(); x < w; x++)
 			{
-				executor.submit(() ->
-				{
-					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-					{
-						double[] c = aColors[y][x];
-
-						int r = mul8(c[0]) << 16;
-						int g = mul8(c[1]) << 8;
-						int b = mul8(c[2]);
-
-						aImage.setRGB(x, y, 0xff000000 | r + g + b);
-					}
-				});
-			});
-		}
+				double[] c = aColors[y][x];
+				int r = mul8(c[0]) << 16;
+				int g = mul8(c[1]) << 8;
+				int b = mul8(c[2]);
+				aImage.setRGB(x, y, 0xff000000 | r + g + b);
+			}
+		});
 	}
 
 
 	private static void toSRGB(BufferedImage aImage, double[][][] aColors)
 	{
-		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
+		Parallel.range(0, aImage.getHeight()).forEach(y ->
 		{
-			IntStream.range(0, aImage.getHeight()).forEach(y ->
+			for (int x = 0, w = aImage.getWidth(); x < w; x++)
 			{
-				executor.submit(() ->
-				{
-					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-					{
-						double[] c = aColors[y][x];
-
-						int r = mul8(gamme(c[0])) << 16;
-						int g = mul8(gamme(c[1])) << 8;
-						int b = mul8(gamme(c[2]));
-
-						aImage.setRGB(x, y, 0xff000000 | r + g + b);
-					}
-				});
-			});
-		}
+				double[] c = aColors[y][x];
+				int r = mul8(gamme(c[0])) << 16;
+				int g = mul8(gamme(c[1])) << 8;
+				int b = mul8(gamme(c[2]));
+				aImage.setRGB(x, y, 0xff000000 | r + g + b);
+			}
+		});
 	}
 
 
 	private static void fromRGB(BufferedImage aImage, double[][][] aColors)
 	{
-		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
+		Parallel.range(0, aImage.getHeight()).forEach(y ->
 		{
-			IntStream.range(0, aImage.getHeight()).forEach(y ->
+			for (int x = 0, w = aImage.getWidth(); x < w; x++)
 			{
-				executor.submit(() ->
-				{
-					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-					{
-						int aColor = aImage.getRGB(x, y);
-						aColors[y][x][0] = (0xff & (aColor >> 16)) / 255f;
-						aColors[y][x][1] = (0xff & (aColor >>  8)) / 255f;
-						aColors[y][x][2] = (0xff & (aColor      )) / 255f;
-					}
-				});
-			});
-		}
+				int c = aImage.getRGB(x, y);
+				aColors[y][x][0] = (0xff & (c >> 16)) / 255f;
+				aColors[y][x][1] = (0xff & (c >> 8)) / 255f;
+				aColors[y][x][2] = (0xff & (c)) / 255f;
+			}
+		});
 	}
 
 
 	private static void fromSRGB(BufferedImage aImage, double[][][] aColors)
 	{
-		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
+		Parallel.range(0, aImage.getHeight()).forEach(y ->
 		{
-			IntStream.range(0, aImage.getHeight()).forEach(y ->
+			for (int x = 0, w = aImage.getWidth(); x < w; x++)
 			{
-				executor.submit(() ->
-				{
-					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-					{
-						int aColor = aImage.getRGB(x, y);
-						aColors[y][x][0] = gamma_inv((0xff & (aColor >> 16)) / 255.0);
-						aColors[y][x][1] = gamma_inv((0xff & (aColor >> 8)) / 255.0);
-						aColors[y][x][2] = gamma_inv((0xff & (aColor)) / 255.0);
-					}
-				});
-			});
-		}
+				int c = aImage.getRGB(x, y);
+				aColors[y][x][0] = gamma_inv((0xff & (c >> 16)) / 255.0);
+				aColors[y][x][1] = gamma_inv((0xff & (c >> 8)) / 255.0);
+				aColors[y][x][2] = gamma_inv((0xff & (c)) / 255.0);
+			}
+		});
 	}
-
-
-//	private static void toRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
-//		{
-//			for (int y = 0; y < aImage.getHeight(); y++)
-//			{
-//				double[][] col = aColors[y];
-//				int _y = y;
-//
-//				executor.submit(() ->
-//				{
-//					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//					{
-//						double[] c = col[x];
-//
-//						int r = mul8(c[0]) << 16;
-//						int g = mul8(c[1]) << 8;
-//						int b = mul8(c[2]);
-//
-//						aImage.setRGB(x, _y, 0xff000000 | r + g + b);
-//					}
-//				});
-//			}
-//		}
-//	}
-//
-//
-//	private static void toSRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
-//		{
-//			for (int y = 0; y < aImage.getHeight(); y++)
-//			{
-//				double[][] col = aColors[y];
-//				int _y = y;
-//
-//				executor.submit(() ->
-//				{
-//					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//					{
-//						double[] c = col[x];
-//
-//						int r = mul8(gamme(c[0])) << 16;
-//						int g = mul8(gamme(c[1])) << 8;
-//						int b = mul8(gamme(c[2]));
-//
-//						aImage.setRGB(x, _y, 0xff000000 | r + g + b);
-//					}
-//				});
-//			}
-//		}
-//	}
-//
-//
-//	private static void fromRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
-//		{
-//			for (int y = 0; y < aImage.getHeight(); y++)
-//			{
-//				double[][] col = aColors[y];
-//				int _y = y;
-//
-//				executor.submit(() ->
-//				{
-//					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//					{
-//						int aColor = aImage.getRGB(x, _y);
-//						col[x][0] = (0xff & (aColor >> 16)) / 255f;
-//						col[x][1] = (0xff & (aColor >>  8)) / 255f;
-//						col[x][2] = (0xff & (aColor      )) / 255f;
-//					}
-//				});
-//			}
-//		}
-//	}
-//
-//
-//	private static void fromSRGB(BufferedImage aImage, double[][][] aColors)
-//	{
-//		try (FixedThreadExecutor executor = new FixedThreadExecutor(1f))
-//		{
-//			for (int y = 0; y < aImage.getHeight(); y++)
-//			{
-//				double[][] col = aColors[y];
-//				int _y = y;
-//
-//				executor.submit(() ->
-//				{
-//					for (int x = 0, w = aImage.getWidth(); x < w; x++)
-//					{
-//						int aColor = aImage.getRGB(x, _y);
-//						col[x][0] = gamma_inv((0xff & (aColor >> 16)) / 255.0);
-//						col[x][1] = gamma_inv((0xff & (aColor >> 8)) / 255.0);
-//						col[x][2] = gamma_inv((0xff & (aColor)) / 255.0);
-//					}
-//				});
-//			}
-//		}
-//	}
 
 
 	private static double gamme(double x)
