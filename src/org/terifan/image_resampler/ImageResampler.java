@@ -27,7 +27,7 @@ public class ImageResampler
 
 	private static BufferedImage getScaledImageAspectImpl(BufferedImage aSource, int aWidth, int aHeight, boolean aSRGB, Filter aFilter, boolean aOuter)
 	{
-		Dimension dim = getScaledImageAspectSize(new Dimension(aSource.getWidth(), aSource.getHeight()), aWidth, aHeight, aOuter);
+		Dimension dim = getScaledImageAspectSize(aSource.getWidth(), aSource.getHeight(), aWidth, aHeight, aOuter);
 
 		if (dim.width < 1 || dim.height < 1)
 		{
@@ -183,22 +183,19 @@ public class ImageResampler
 	}
 
 
-	public static Dimension getScaledImageAspectSize(Dimension aSource, int aWidth, int aHeight, boolean aOuter)
+	public static Dimension getScaledImageAspectSize(int aSourceWidth, int aSourceHeight, int aWidth, int aHeight, boolean aOuter)
 	{
 		double scale;
 		if (aOuter)
 		{
-			scale = Math.max(aWidth / (double)aSource.width, aHeight / (double)aSource.height);
+			scale = Math.max(aWidth / (double)aSourceWidth, aHeight / (double)aSourceHeight);
 		}
 		else
 		{
-			scale = Math.min(aWidth / (double)aSource.width, aHeight / (double)aSource.height);
+			scale = Math.min(aWidth / (double)aSourceWidth, aHeight / (double)aSourceHeight);
 		}
 
-		aSource.width = (int)Math.round(aSource.width * scale);
-		aSource.height = (int)Math.round(aSource.height * scale);
-
-		return aSource;
+		return new Dimension((int)Math.round(aSourceWidth * scale), (int)Math.round(aSourceHeight * scale));
 	}
 
 	private final static double GAMMA = 2.4;
