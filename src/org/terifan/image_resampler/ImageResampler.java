@@ -183,19 +183,19 @@ public class ImageResampler
 	}
 
 
-	public static Dimension getScaledImageAspectSize(int aSourceWidth, int aSourceHeight, int aWidth, int aHeight, boolean aOuter)
+	public static Dimension getScaledImageAspectSize(int aImageWidth, int aImageHeight, int aLimitWidth, int aLimitHeight, boolean aOuter)
 	{
 		double scale;
 		if (aOuter)
 		{
-			scale = Math.max(aWidth / (double)aSourceWidth, aHeight / (double)aSourceHeight);
+			scale = Math.max(aLimitWidth / (double)aImageWidth, aLimitHeight / (double)aImageHeight);
 		}
 		else
 		{
-			scale = Math.min(aWidth / (double)aSourceWidth, aHeight / (double)aSourceHeight);
+			scale = Math.min(aLimitWidth / (double)aImageWidth, aLimitHeight / (double)aImageHeight);
 		}
 
-		return new Dimension((int)Math.round(aSourceWidth * scale), (int)Math.round(aSourceHeight * scale));
+		return new Dimension((int)Math.round(aImageWidth * scale), (int)Math.round(aImageHeight * scale));
 	}
 
 	private final static double GAMMA = 2.4;
