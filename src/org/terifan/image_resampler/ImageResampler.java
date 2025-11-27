@@ -195,7 +195,23 @@ public class ImageResampler
 			scale = Math.min(aLimitWidth / (double)aImageWidth, aLimitHeight / (double)aImageHeight);
 		}
 
-		return new Dimension((int)Math.round(aImageWidth * scale), (int)Math.round(aImageHeight * scale));
+		int dw = (int)Math.round(aImageWidth * scale);
+		int dh = (int)Math.round(aImageHeight * scale);
+
+		// make sure one direction has specified dimension
+		if (dw != aLimitWidth && dh != aLimitHeight)
+		{
+			if (Math.abs(aLimitWidth - dw) < Math.abs(aLimitHeight - dh))
+			{
+				dw = aLimitWidth;
+			}
+			else
+			{
+				dh = aLimitHeight;
+			}
+		}
+
+		return new Dimension(dw, dh);
 	}
 
 	private final static double GAMMA = 2.4;
