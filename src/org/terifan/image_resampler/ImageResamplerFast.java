@@ -199,7 +199,7 @@ public class ImageResamplerFast
 		int dh = (int)Math.round(aHeight * aScale);
 
 		// make sure one direction has specified dimension
-		if (dw != aWidth && dh != aHeight)
+		if (dw != aSize && dh != aSize)
 		{
 			if (Math.abs(aWidth - dw) < Math.abs(aHeight - dh))
 			{
