@@ -206,6 +206,7 @@ public class App
 	}
 
 
+	@SuppressWarnings("serial")
 	static class ImagePanel extends JPanel
 	{
 		ImagePanel(String aTitle, BufferedImage aImage)

@@ -21,6 +21,7 @@ public class ImageResamplerFast
 
 		Object quality;
 
+
 		Quality(Object aQuality)
 		{
 			quality = aQuality;
@@ -191,23 +192,31 @@ public class ImageResamplerFast
 	}
 
 
-	public static Dimension getScaledImageAspectSize(int aWidth, int aHeight, int aSize)
+	public static Dimension getScaledImageAspectSize(int aImageWidth, int aImageHeight, int aLimitWidth, int aLimitHeight, boolean aOuter)
 	{
-		double aScale = Math.min(aSize / (double)aWidth, aSize / (double)aHeight);
+		double scale;
+		if (aOuter)
+		{
+			scale = Math.max(aLimitWidth / (double)aImageWidth, aLimitHeight / (double)aImageHeight);
+		}
+		else
+		{
+			scale = Math.min(aLimitWidth / (double)aImageWidth, aLimitHeight / (double)aImageHeight);
+		}
 
-		int dw = (int)Math.round(aWidth * aScale);
-		int dh = (int)Math.round(aHeight * aScale);
+		int dw = (int)Math.round(aImageWidth * scale);
+		int dh = (int)Math.round(aImageHeight * scale);
 
 		// make sure one direction has specified dimension
-		if (dw != aSize && dh != aSize)
+		if (dw != aLimitWidth && dh != aLimitHeight)
 		{
-			if (Math.abs(aWidth - dw) < Math.abs(aHeight - dh))
+			if (Math.abs(aLimitWidth - dw) < Math.abs(aLimitHeight - dh))
 			{
-				dw = aWidth;
+				dw = aLimitWidth;
 			}
 			else
 			{
-				dh = aHeight;
+				dh = aLimitHeight;
 			}
 		}
 
