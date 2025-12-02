@@ -1,6 +1,7 @@
 package dev;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -39,10 +40,10 @@ public class App
 //			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Image Compression Suit").listFiles(f->f.isFile()));
 //			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers").listFiles(f->f.isFile()));
 //			JComboBox fileList = new JComboBox(new File("D:\\Pictures\\Wallpapers\\4k").listFiles(f->f.isFile()));
-			JComboBox fileList = new JComboBox(new File("D:\\Pictures").listFiles(f->f.isFile()));
+			JComboBox fileList = new JComboBox(new File("C:\\Users\\patrik\\Pictures").listFiles(f->f.isFile()));
 
-			int targetW = 200;
-			int targetH = 200;
+			int targetW = 64;
+			int targetH = 64;
 
 			JPanel panelImages = new JPanel(new GridLayout(2, 3, 5, 5));
 
@@ -112,7 +113,6 @@ public class App
 						inImage = ImageIO.read((File)fileList.getModel().getSelectedItem());
 						long t0 = System.currentTimeMillis();
 						refImage = ImageResamplerFast.getScaledImage(inImage, targetW, targetH, Quality.BICUBIC);
-//						refImage = SincImageResampler.resampleImage(inImage, targetW, targetH);
 						long t1 = System.currentTimeMillis();
 						refTime = t1 - t0;
 						filterListener.valueChanged(null);
@@ -131,7 +131,7 @@ public class App
 
 			fileList.actionPerformed(null);
 
-			JPanel mainPanel = new JPanel(new BorderLayout());
+			JPanel testPanel = new JPanel(new BorderLayout());
 			JPanel filtersPanel = new JPanel(new BorderLayout());
 			JPanel filter1Panel = new JPanel(new BorderLayout());
 			JPanel filter2Panel = new JPanel(new BorderLayout());
@@ -141,15 +141,19 @@ public class App
 			filter2Panel.add(new JScrollPane(list2), BorderLayout.CENTER);
 			filtersPanel.add(filter1Panel, BorderLayout.WEST);
 			filtersPanel.add(filter2Panel, BorderLayout.EAST);
-			mainPanel.add(filtersPanel, BorderLayout.WEST);
-			mainPanel.add(panelImages, BorderLayout.CENTER);
+			testPanel.add(filtersPanel, BorderLayout.WEST);
+			testPanel.add(panelImages, BorderLayout.CENTER);
 
-			JPanel filesPanel = new JPanel(new BorderLayout());
-			filesPanel.add(fileList, BorderLayout.NORTH);
-			filesPanel.add(mainPanel, BorderLayout.CENTER);
+			JPanel filesPanel = new JPanel(new FlowLayout());
+			filesPanel.add(new JLabel("File: "));
+			filesPanel.add(fileList);
 
-			JFrame frame = new JFrame();
-			frame.add(filesPanel);
+			JPanel mainPanel = new JPanel(new BorderLayout());
+			mainPanel.add(filesPanel, BorderLayout.NORTH);
+			mainPanel.add(testPanel, BorderLayout.CENTER);
+
+			JFrame frame = new JFrame("Downscale image to "+targetW+"x"+targetH+" using custom kernals compared to Java's default Bicubic method");
+			frame.add(mainPanel);
 			frame.setSize(740 * 3, 700 * 2);
 			frame.setLocationRelativeTo(null);
 			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
